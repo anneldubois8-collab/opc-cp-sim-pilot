@@ -1,0 +1,280 @@
+/* Basic reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f7f9;
+  color: #1f2933;
+  line-height: 1.5;
+}
+
+/* Header / Branding */
+
+.opc-header {
+  background: linear-gradient(135deg, #0088a9, #005f73);
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+
+.opc-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.opc-logo-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+.opc-title-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.opc-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.opc-subtitle {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+/* Layout */
+
+.app-container {
+  max-width: 1100px;
+  margin: 1.5rem auto 3rem auto;
+  padding: 0 1rem;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 1.5rem 1.5rem 1.75rem 1.5rem;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.08);
+  margin-bottom: 1.5rem;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Typography */
+
+h1, h2, h3 {
+  margin-bottom: 0.75rem;
+  color: #12212f;
+}
+
+.lead {
+  font-size: 0.98rem;
+  margin-bottom: 0.75rem;
+}
+
+p {
+  margin-bottom: 0.5rem;
+}
+
+ul {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Buttons */
+
+.btn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.5rem 1.2rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.05s ease-out, box-shadow 0.1s ease-out, background-color 0.15s ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.btn-primary {
+  background: #0088a9;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0,136,169,0.35);
+}
+
+.btn-primary:hover {
+  background: #00738e;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 9px rgba(0,136,169,0.45);
+}
+
+.btn-secondary {
+  background: #e5ecf3;
+  color: #1f2933;
+}
+
+.btn-secondary:hover {
+  background: #d6e1ec;
+  transform: translateY(-1px);
+}
+
+/* Case content */
+
+.case-stem {
+  background: #f0f7fb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.case-stem h2 {
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.section-description {
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  color: #44505c;
+}
+
+/* Question cards */
+
+.question-item {
+  border-radius: 8px;
+  border: 1px solid #e1e7f0;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #ffffff;
+}
+
+.question-text {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.feedback {
+  font-size: 0.83rem;
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  background: #f5f7fb;
+  border-left: 3px solid #cbd5f5;
+}
+
+.feedback.hidden {
+  display: none;
+}
+
+.feedback-heading {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.feedback-core, .feedback-enrichment {
+  margin-bottom: 0.25rem;
+}
+
+/* Classification tags */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-right: 0.25rem;
+}
+
+.tag-essential {
+  background: #e3f6ed;
+  color: #166534;
+}
+
+.tag-appropriate {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.tag-low {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.tag-inappropriate {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.tag-contraindicated {
+  background: #fecaca;
+  color: #7f1d1d;
+}
+
+/* Nav row */
+
+.nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+/* Summary */
+
+#score-summary {
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+#classification-breakdown {
+  font-size: 0.85rem;
+}
+
+.breakdown-list {
+  list-style: none;
+  margin-left: 0;
+}
+
+/* Footer */
+
+.opc-footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  padding: 0.75rem 0 1.25rem 0;
+}
