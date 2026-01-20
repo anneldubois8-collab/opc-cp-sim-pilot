@@ -1,8 +1,8 @@
 // ------------------------------
-// CP SIM PILOT ENGINE (v0.2)
+// CP SIM PILOT ENGINE (v0.3)
 // ------------------------------
 
-// Scenario data for the pilot TT case
+// Pilot transtibial scenario data
 const scenario = [
   {
     stepTitle: "Initial Evaluation",
@@ -36,7 +36,7 @@ const scenario = [
           "Observing mobility with the patient’s walker provides insight into balance, endurance, weight shift strategy, and transfer ability prior to prosthetic fitting."
       },
       {
-        text: "Attempt gait observation in parallel bars without assistive device.",
+        text: "Attempt gait observation in parallel bars without an assistive device.",
         score: -2,
         bucket: "Contraindicated",
         rationale:
@@ -101,15 +101,13 @@ const scenario = [
 let currentStep = 0;
 let totalScore = 0;
 
-let introSection;
-let caseSection;
-let stepContainer;
-let nextBtn;
-let summaryPanel;
-let startBtn;
-
+// Renders the current step into #step-container
 function renderStep() {
   const step = scenario[currentStep];
+  const stepContainer = document.getElementById("step-container");
+
+  if (!stepContainer) return;
+
   stepContainer.innerHTML = `
     <h2 class="step-title">${step.stepTitle}</h2>
     ${step.items
@@ -129,11 +127,15 @@ function renderStep() {
   `;
 }
 
+// Called when user clicks Yes/No on an action
 function handleSelection(index, userChoice) {
-  const item = scenario[currentStep].items[index];
+  const step = scenario[currentStep];
+  const item = step.items[index];
   const fb = document.getElementById(`feedback-${index}`);
 
-  // For now, only score if the user chooses "Yes" on an action
+  if (!fb) return;
+
+  // For pilot: only score when user chooses "Yes"
   if (userChoice === true) {
     totalScore += item.score;
   }
@@ -147,18 +149,27 @@ function handleSelection(index, userChoice) {
   fb.style.display = "block";
 }
 
+// Shows the summary panel at the end
 function showSummary() {
-  stepContainer.style.display = "none";
-  nextBtn.style.display = "none";
-  summaryPanel.innerHTML = `
-    <h2>Scenario Complete</h2>
-    <p>Your total pilot score: <strong>${totalScore}</strong></p>
-    <p>This score is for study purposes only. In future versions, this will be mapped to performance categories (e.g., Emerging, Competent, Proficient).</p>
-  `;
-  summaryPanel.style.display = "block";
+  const stepContainer = document.getElementById("step-container");
+  const nextBtn = document.getElementById("next-btn");
+  const summaryPanel = document.getElementById("summary-panel");
+
+  if (stepContainer) stepContainer.style.display = "none";
+  if (nextBtn) nextBtn.style.display = "none";
+
+  if (summaryPanel) {
+    summaryPanel.innerHTML = `
+      <h2>Scenario Complete</h2>
+      <p>Your total pilot score: <strong>${totalScore}</strong></p>
+      <p>This score is for study purposes only. In future versions, it can be mapped to performance categories (e.g., Emerging, Competent, Proficient).</p>
+    `;
+    summaryPanel.style.display = "block";
+  }
 }
 
-function goToNextStep() {
+// Next section button
+function nextStep() {
   currentStep++;
   if (currentStep < scenario.length) {
     renderStep();
@@ -167,43 +178,36 @@ function goToNextStep() {
   }
 }
 
+// Start Case button
 function startCase() {
-  // Hide intro, show case
-  introSection.style.display = "none";
-  caseSection.style.display = "block";
+  const intro = document.getElementById("intro");
+  const caseSection = document.getElementById("case");
+  const summaryPanel = document.getElementById("summary-panel");
+  const stepContainer = document.getElementById("step-container");
+  const nextBtn = document.getElementById("next-btn");
 
-  // Reset state in case user replays
+  if (intro) intro.style.display = "none";
+  if (caseSection) caseSection.style.display = "block";
+
   currentStep = 0;
   totalScore = 0;
-  summaryPanel.style.display = "none";
-  stepContainer.style.display = "block";
-  nextBtn.style.display = "inline-block";
+
+  if (summaryPanel) summaryPanel.style.display = "none";
+  if (stepContainer) stepContainer.style.display = "block";
+  if (nextBtn) nextBtn.style.display = "inline-block";
 
   renderStep();
 }
 
-// Initialize after DOM is fully loaded
-document.addEventListener("DOMContentLoaded", () => {
-  introSection = document.getElementById("intro");
-  caseSection = document.getElementById("case");
-  stepContainer = document.getElementById("step-container");
-  nextBtn = document.getElementById("next-btn");
-  summaryPanel = document.getElementById("summary-panel");
-  startBtn = document.getElementById("start-btn");
-
-  // Ensure case section is hidden initially
+// Hide case section on initial load
+document.addEventListener("DOMContentLoaded", function () {
+  const caseSection = document.getElementById("case");
   if (caseSection) {
     caseSection.style.display = "none";
   }
-
-  if (startBtn) {
-    startBtn.addEventListener("click", startCase);
-  }
-
-  if (nextBtn) {
-    nextBtn.addEventListener("click", goToNextStep);
-  }
 });
 
-// Expose handleSelection globally for inline onclick
+// Expose functions globally for inline onclick handlers
 window.handleSelection = handleSelection;
+window.startCase = startCase;
+window.nextStep = nextStep;
