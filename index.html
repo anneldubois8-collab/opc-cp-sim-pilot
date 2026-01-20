@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OPC CP Simulation Trainer – Pilot TT Case</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="opc-header">
+    <div class="opc-brand">
+      <!-- Replace text with an actual logo image if you want -->
+      <div class="opc-logo-circle">OPC</div>
+      <div class="opc-title-block">
+        <div class="opc-title">OPC Prosthetics</div>
+        <div class="opc-subtitle">CP Written Simulation Trainer – Pilot</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <section id="intro-section" class="card">
+      <h1>Pilot Case: Adult Transtibial (Dysvascular)</h1>
+      <p class="lead">
+        This is a <strong>study tool</strong> inspired by the ABC CP Written Simulation exam. 
+        It is <strong>not</strong> an official ABC product and does <strong>not</strong> use actual exam items.
+      </p>
+      <p>
+        You will work through a single transtibial case in several sections:
+      </p>
+      <ul>
+        <li>Patient Assessment</li>
+        <li>Problem Interpretation</li>
+        <li>Treatment Plan & Initial Implementation</li>
+      </ul>
+      <p>
+        For each possible action, choose whether you would perform it in this situation.
+        After answering, you will see:
+      </p>
+      <ul>
+        <li><strong>Core exam-style classification</strong> (Essential / Appropriate / Low value / Inappropriate / Contraindicated)</li>
+        <li><strong>Brief core reasoning</strong></li>
+        <li><strong>Enrichment commentary</strong> with extra biomechanical / orthotic detail</li>
+      </ul>
+      <button id="start-btn" class="btn btn-primary">Start Case</button>
+    </section>
+
+    <section id="case-section" class="card hidden">
+      <div id="case-stem" class="case-stem"></div>
+      <div id="section-title" class="section-title"></div>
+      <div id="section-description" class="section-description"></div>
+      <div id="questions-container"></div>
+      <div class="nav-row">
+        <button id="prev-section-btn" class="btn btn-secondary" disabled>Previous Section</button>
+        <button id="next-section-btn" class="btn btn-primary">Next Section</button>
+      </div>
+    </section>
+
+    <section id="summary-section" class="card hidden">
+      <h2>Session Summary</h2>
+      <p>
+        This summary is for study purposes only. It does <strong>not</strong> represent ABC scoring,
+        but it mirrors how simulation exams reward appropriate actions and penalize unsafe ones.
+      </p>
+      <div id="score-summary"></div>
+      <div id="classification-breakdown"></div>
+      <button id="restart-btn" class="btn btn-secondary">Restart Case</button>
+    </section>
+  </main>
+
+  <footer class="opc-footer">
+    <p>OPC Prosthetics · CP Simulation Study Tool (Pilot)</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
