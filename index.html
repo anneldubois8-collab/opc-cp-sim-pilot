@@ -4,17 +4,22 @@
   <meta charset="UTF-8" />
   <title>CP Prosthetic Simulation – Pilot</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
+
   <header class="opc-header">
-    <img src="assets/opc-logo.png" alt="OPC Logo" class="opc-logo" />
     <h1>CP Prosthetic Simulation – Pilot</h1>
   </header>
 
   <main class="layout">
+
+    <!-- MAIN PANEL -->
     <section class="main-pane">
+
+      <!-- INTRO -->
       <section id="intro" class="intro-section">
         <h2>Welcome to the Transtibial Pilot Case</h2>
         <p>
@@ -24,9 +29,11 @@
         <p>
           Feedback is shown to support learning and to illustrate cause and effect.
         </p>
+
         <button id="start-btn" class="primary-btn" onclick="startCase()">Start Case</button>
       </section>
 
+      <!-- CASE -->
       <section id="case" class="case-section" style="display:none;">
 
         <div id="event-banner" class="event-banner" style="display:none;"></div>
@@ -36,10 +43,14 @@
         <button id="next-btn" class="secondary-btn" onclick="nextStep()">Next</button>
 
         <div id="summary-panel" class="summary-panel"></div>
+
       </section>
+
     </section>
 
-    <aside class="side-pane">
+    <!-- SIDEBAR -->
+    <aside id="side-pane" class="side-pane" style="display:none;">
+
       <div class="side-card">
         <h3>Case File</h3>
         <div id="casefile-panel" class="side-content"></div>
@@ -49,9 +60,12 @@
         <h3>New Info Unlocked</h3>
         <div id="unlocked-panel" class="side-content"></div>
       </div>
+
     </aside>
+
   </main>
 
   <script src="script.js"></script>
+
 </body>
 </html>
