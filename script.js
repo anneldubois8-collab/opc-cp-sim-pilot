@@ -309,4 +309,228 @@ const nodes = {
           flag("leftDeviationsUncorrected");
           addEvent("Gait deviations persist. Increased risk of distal anterior pressure and reduced confidence.");
           state.score -= 2;
-          return { verdict: "Incorrect
+          return { verdict: "Incorrect.", detail: "Leaving deviations unaddressed is a functional and tissue risk." };
+        }
+      },
+      {
+        text: "If distal tibial sensitivity is present, confirm relief strategy and monitor early skin response in follow-ups.",
+        recommended: true,
+        onYes: () => {
+          learn("followUpPlan", "Early follow-up scheduled to check skin and adjust fit/alignment", "Follow-up: early skin checks planned due to distal tibial sensitivity");
+          state.score += 2;
+          return { verdict: "Correct.", detail: "This ties tissue tolerance findings directly to safe implementation." };
+        },
+        onNo: () => {
+          flag("noEarlySkinFollowUp");
+          state.score -= 2;
+          return { verdict: "Incorrect.", detail: "With dysvascular risk and distal sensitivity, early follow-up is not optional in good practice." };
+        }
+      }
+    ],
+    next: () => "final_plan"
+  },
+
+  final_plan: {
+    title: "Final Plan – Choose the best overall approach",
+    type: "single_choice",
+    options: () => {
+      const hasContracture = !!state.facts.kneeROM || !!state.facts.opNoteKey;
+      const didDynamic = !!state.facts.dynamicAlignment && !state.flags.skippedDynamicAlignment;
+      const hasSkinRisk = !!state.facts.limbSkin;
+
+      const bestText = [
+        "Proceed with TT prosthesis using stability-prioritized componentry, liner-based system as appropriate, and structured PT gait and balance training.",
+        hasContracture ? "Accommodate knee flexion contracture with socket flexion and alignment strategy, validated through dynamic alignment." : "",
+        didDynamic ? "Document dynamic alignment changes and observed gait response." : "Complete dynamic alignment prior to finalizing settings.",
+        hasSkinRisk ? "Schedule early follow-up to assess skin response and adjust fit and alignment." : "Schedule early follow-up for skin and fit checks."
+      ].filter(Boolean).join(" ");
+
+      return [
+        {
+          id: "plan_best",
+          text: bestText,
+          isBest: true,
+          rationale: "This integrates objective findings, safety, gait validation, and tissue tolerance into a coherent real-world plan."
+        },
+        {
+          id: "plan_delay",
+          text: "Delay prosthetic fitting due to fall risk; continue pre-prosthetic PT only with no defined prosthetic timeline.",
+          isBest: false,
+          rationale: "This overcorrects for risk, promotes deconditioning, and does not meet realistic functional goals."
+        },
+        {
+          id: "plan_k3",
+          text: "Provide a high-energy-return K3 foot immediately to encourage higher activity and reduce PT needs.",
+          isBest: false,
+          rationale: "This increases control demands and can reduce stability. It is not justified by the current functional profile and risk factors."
+        }
+      ];
+    },
+    next: () => "summary"
+  },
+
+  summary: {
+    title: "Scenario Complete",
+    type: "summary"
+  }
+};
+
+let currentNodeId = "start_eval";
+
+function renderNode() {
+  clearEventBanner();
+
+  const stepContainer = document.getElementById("step-container");
+  const summaryPanel = document.getElementById("summary-panel");
+  const nextBtn = document.getElementById("next-btn");
+
+  if (!stepContainer || !summaryPanel || !nextBtn) return;
+
+  summaryPanel.style.display = "none";
+  stepContainer.style.display = "block";
+  nextBtn.style.display = "inline-block";
+  nextBtn.textContent = "Next";
+
+  const node = nodes[currentNodeId];
+
+  if (node.type === "summary") {
+    stepContainer.style.display = "none";
+    nextBtn.style.display = "none";
+
+    const factsList = Object.entries(state.facts).map(([k, v]) => `<li><strong>${k}:</strong> ${String(v)}</li>`).join("");
+    const flagsList = Object.entries(state.flags).map(([k, v]) => `<li><strong>${k}:</strong> ${String(v)}</li>`).join("");
+
+    summaryPanel.innerHTML = `
+      <h2>${node.title}</h2>
+      <p><strong>Score (pilot):</strong> ${state.score}</p>
+      <p><strong>Facts on file:</strong></p>
+      <ul>${factsList || "<li>None</li>"}</ul>
+      <p><strong>Flags:</strong></p>
+      <ul>${flagsList || "<li>None</li>"}</ul>
+      <p>This feedback is for study purposes only and is not scaled to the actual ABC scoring model.</p>
+    `;
+    summaryPanel.style.display = "block";
+    return;
+  }
+
+  let html = `
+    ${caseStemHtml}
+    <h2 class="step-title">${node.title}</h2>
+    ${node.instruction ? `<p class="instruction-text">${node.instruction}</p>` : ""}
+  `;
+
+  if (node.type === "single_choice") {
+    const options = node.options();
+    html += `<form id="plan-form">`;
+    for (const opt of options) {
+      html += `
+        <div class="plan-option">
+          <label>
+            <input type="radio" name="plan" value="${opt.id}">
+            ${opt.text}
+          </label>
+        </div>
+      `;
+    }
+    html += `</form><div class="feedback" id="node-feedback" style="display:none;"></div>`;
+
+    stepContainer.innerHTML = html;
+
+    nextBtn.onclick = () => {
+      const form = document.getElementById("plan-form");
+      const fb = document.getElementById("node-feedback");
+      const choice = new FormData(form).get("plan");
+      const selected = options.find((o) => o.id === choice);
+
+      if (!selected) {
+        fb.style.display = "block";
+        fb.innerHTML = `<strong>Please select a plan.</strong>`;
+        return;
+      }
+
+      fb.style.display = "block";
+      fb.innerHTML = selected.isBest
+        ? `<strong>Correct.</strong> ${selected.rationale}`
+        : `<strong>Not the best choice.</strong> ${selected.rationale}`;
+
+      nextBtn.textContent = "Finish";
+      nextBtn.onclick = () => {
+        currentNodeId = node.next();
+        renderNode();
+      };
+    };
+
+    return;
+  }
+
+  html += node.actions.map((a, idx) => `
+    <div class="action-block">
+      <p class="action-text">${a.text}</p>
+      <div class="action-buttons">
+        <button class="yes-btn" data-idx="${idx}" data-ans="yes">Yes</button>
+        <button class="no-btn" data-idx="${idx}" data-ans="no">No</button>
+      </div>
+      <div class="feedback" id="fb-${idx}" style="display:none;"></div>
+    </div>
+  `).join("");
+
+  stepContainer.innerHTML = html;
+
+  stepContainer.querySelectorAll("button[data-idx]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const idx = Number(e.currentTarget.getAttribute("data-idx"));
+      const ans = e.currentTarget.getAttribute("data-ans");
+      const action = node.actions[idx];
+      const fb = document.getElementById(`fb-${idx}`);
+
+      const choseYes = ans === "yes";
+      const correct = choseYes === action.recommended;
+
+      const result = choseYes ? action.onYes?.() : action.onNo?.();
+      const verdict = result?.verdict || (correct ? "Correct." : "Not ideal.");
+      const detail = result?.detail ? `<br><br>${result.detail}` : "";
+
+      fb.style.display = "block";
+      fb.innerHTML = `<strong>${verdict}</strong>${detail}`;
+    });
+  });
+
+  nextBtn.onclick = () => {
+    currentNodeId = node.next();
+    renderNode();
+  };
+}
+
+function startCase() {
+  const intro = document.getElementById("intro");
+  const caseSection = document.getElementById("case");
+  const summaryPanel = document.getElementById("summary-panel");
+
+  if (intro) intro.style.display = "none";
+  if (caseSection) caseSection.style.display = "block";
+  if (summaryPanel) summaryPanel.style.display = "none";
+
+  state.facts = {};
+  state.flags = {};
+  state.score = 0;
+  state.unlocked = [];
+  state.events = [];
+  currentNodeId = "start_eval";
+
+  renderSidePanels();
+  renderNode();
+}
+
+function nextStep() {
+  // The Next button handlers are assigned per-node in renderNode().
+  // This exists only because your HTML calls nextStep() directly.
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const caseSection = document.getElementById("case");
+  if (caseSection) caseSection.style.display = "none";
+  renderSidePanels();
+});
+
+window.startCase = startCase;
+window.nextStep = nextStep;
