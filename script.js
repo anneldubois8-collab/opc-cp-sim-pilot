@@ -34,7 +34,7 @@ const caseStemHtml = `
 // Nodes: each node has an id, title, actions, and a next() function that can branch
 const nodes = {
   start_eval: {
-    title: "Initial Evaluation – What do you do first?",
+    title: "Initial Evaluation – Which actions would you perform?",
     actions: [
       {
         text: "Review surgeon operative note and vascular studies.",
