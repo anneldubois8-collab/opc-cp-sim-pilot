@@ -4,68 +4,53 @@
   <meta charset="UTF-8" />
   <title>CP Prosthetic Simulation – Pilot</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-
-  <!-- Header -->
   <header class="opc-header">
     <img src="assets/opc-logo.png" alt="OPC Logo" class="opc-logo" />
     <h1>CP Prosthetic Simulation – Pilot</h1>
   </header>
 
-  <main class="main-wrapper">
+  <main class="layout">
+    <section class="main-pane">
+      <section id="intro" class="intro-section">
+        <h2>Welcome to the Transtibial Pilot Case</h2>
+        <p>
+          This interactive case models clinical reasoning commonly assessed in CP written simulation-style scenarios.
+          You will decide which actions you would take, interpret what you learn, and adjust your plan as new information appears.
+        </p>
+        <p>
+          Feedback is shown to support learning and to illustrate cause and effect.
+        </p>
+        <button id="start-btn" class="primary-btn" onclick="startCase()">Start Case</button>
+      </section>
 
-    <!-- INTRO SCREEN -->
-    <section id="intro" class="intro-section">
-      <h2>Welcome to the Transtibial Pilot Case</h2>
+      <section id="case" class="case-section">
+        <div id="event-banner" class="event-banner" style="display:none;"></div>
 
-      <p>
-        This interactive case models the clinical reasoning required for the
-        ABC Certified Prosthetist Written Simulation exam.
-      </p>
+        <div id="step-container"></div>
 
-      <p>
-        You will be presented with a real-world patient scenario and must decide
-        which clinical actions you would and would not take. Feedback will appear
-        after each choice explaining whether your decision was appropriate and why.
-      </p>
+        <button id="next-btn" class="secondary-btn" onclick="nextStep()">Next</button>
 
-      <p>
-        This tool is for study purposes only and is not affiliated with ABC.
-      </p>
-
-      <button
-        id="start-btn"
-        class="primary-btn"
-        onclick="startCase()">
-        Start Case
-      </button>
+        <div id="summary-panel" class="summary-panel"></div>
+      </section>
     </section>
 
-    <!-- CASE SCREEN -->
-    <section id="case" class="case-section">
+    <aside class="side-pane">
+      <div class="side-card">
+        <h3>Case File</h3>
+        <div id="casefile-panel" class="side-content"></div>
+      </div>
 
-      <div id="step-container"></div>
-
-      <button
-        id="next-btn"
-        class="secondary-btn"
-        onclick="nextStep()">
-        Next Section
-      </button>
-
-      <div id="summary-panel" class="summary-panel"></div>
-
-    </section>
-
+      <div class="side-card">
+        <h3>New Info Unlocked</h3>
+        <div id="unlocked-panel" class="side-content"></div>
+      </div>
+    </aside>
   </main>
 
-  <!-- Load simulation logic LAST -->
   <script src="script.js"></script>
-
 </body>
 </html>
