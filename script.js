@@ -1,410 +1,373 @@
+// CP SIM PILOT ENGINE (v0.5) — branching "choose your own adventure"
+
+const state = {
+  facts: {},
+  flags: {},
+  score: 0,
+  log: []
+};
+
+// Utility: set fact + log it
+function learn(key, value) {
+  state.facts[key] = value;
+  state.log.push({ type: "fact", key, value });
+}
+
+function flag(key, value = true) {
+  state.flags[key] = value;
+  state.log.push({ type: "flag", key, value });
+}
+
 // ------------------------------
-// CP SIM PILOT ENGINE (v0.4)
+// CASE CONTENT
 // ------------------------------
 
-// Real-world transtibial case stem
-const caseStem = `
-<strong>Case Summary:</strong><br>
-A 68-year-old male with a history of type 2 diabetes and peripheral arterial disease
-underwent a right transtibial amputation 4 months ago for an infected, nonhealing
-plantar ulcer with osteomyelitis. He completed inpatient rehab and is now in
-outpatient physical therapy.<br><br>
-He currently ambulates household distances with a rolling walker and can manage short
-community distances with frequent rests. He reports feeling unsteady on uneven
-surfaces and in crowded environments, with two near-falls but no actual falls.<br><br>
-His goals are to walk independently at home, walk to the mailbox, attend church,
-and accompany his spouse on grocery trips. You are evaluating him for his first
-definitive transtibial prosthesis.
+const caseStemHtml = `
+  <div class="case-stem">
+    <strong>Case Summary:</strong><br>
+    68-year-old male, DM2 + PAD, right transtibial amputation 4 months ago for infected nonhealing plantar ulcer with osteomyelitis.
+    Completed inpatient rehab, now outpatient PT. Household ambulator with RW, short community distances with rests.
+    Reports unsteadiness on uneven ground and in crowds, two near-falls. Goals: independent household walking, mailbox, church, grocery trips.
+  </div>
 `;
 
-// Scenario steps (evaluation, problem ID, treatment planning)
-const scenario = [
-  {
-    stepTitle: "Initial Evaluation – Actions",
-    items: [
+// Nodes: each node has an id, title, actions, and a next() function that can branch
+const nodes = {
+  start_eval: {
+    title: "Initial Evaluation – What do you do first?",
+    actions: [
       {
-        text: "Review the surgeon’s operative note and vascular studies.",
+        text: "Review surgeon operative note and vascular studies.",
         recommended: true,
-        score: +2,
-        bucket: "Essential",
-        rationale:
-          "Operative notes and vascular status inform healing potential, expected weight-bearing tolerance, and socket design considerations."
+        onYes: () => {
+          learn("vascularStatus", "ABI 0.65; vascular surgeon note: slow healing risk but cleared for prosthetic rehab");
+          learn("surgicalDetails", "TT length ~12 cm; posterior flap viable; mild knee flexion contracture noted");
+          return {
+            reveal: `
+              <strong>Chart excerpt:</strong> ABI 0.65. Vascular note: “moderate PAD; healing risk elevated; cleared for progressive prosthetic rehab.”
+              Operative note: “TT length ~12 cm; posterior flap viable; mild knee flexion contracture.”
+            `
+          };
+        },
+        onNo: () => {
+          flag("missedChartReview");
+          return {
+            reveal: `<strong>Missed info:</strong> You proceed without objective vascular/surgical context, increasing downstream risk of wrong expectations and socket strategy.`
+          };
+        }
       },
       {
-        text: "Obtain a detailed history of falls and near falls since amputation.",
+        text: "Take detailed fall and near-fall history since amputation.",
         recommended: true,
-        score: +2,
-        bucket: "Essential",
-        rationale:
-          "Fall and near-fall history affects component decisions, rehab planning, and safety strategies in dysvascular transtibial patients."
-      },
-      {
-        text: "Inspect the residual limb for skin integrity, edema, scar mobility, and bony prominences.",
-        recommended: true,
-        score: +2,
-        bucket: "Essential",
-        rationale:
-          "Inspection determines readiness for prosthetic fitting and informs reliefs and build-ups in socket design."
-      },
-      {
-        text: "Observe pre-prosthetic mobility using his current assistive device (rolling walker).",
-        recommended: true,
-        score: +1,
-        bucket: "Appropriate",
-        rationale:
-          "Observing mobility with his walker provides insight into balance, endurance, weight shift strategy, and transfer ability prior to prosthetic fitting."
+        onYes: () => {
+          learn("fallProfile", "2 near-falls, avoids uneven ground and crowded environments, moderate fear of falling");
+          return {
+            reveal: `
+              <strong>History detail:</strong> Two near-falls in the last month while turning and when stepping off a curb.
+              Patient avoids uneven surfaces and crowded areas; moderate fear of falling.
+            `
+          };
+        },
+        onNo: () => {
+          flag("missedFallHistory");
+          return { reveal: `<strong>Missed info:</strong> You do not quantify fall risk triggers, which later affects component and training decisions.` };
+        }
       },
       {
         text: "Attempt gait observation in parallel bars without an assistive device.",
         recommended: false,
-        score: -2,
-        bucket: "Contraindicated",
-        rationale:
-          "He has no prosthesis and known balance deficits; attempting unsupported gait is unsafe and provides no valid biomechanical assessment."
+        onYes: () => {
+          flag("unsafeClinicEvent");
+          state.score -= 2;
+          return {
+            reveal: `
+              <strong>Event:</strong> Patient loses balance during first step attempt. You catch him, but this is a near-fall.
+              You must re-establish safety before continuing.
+            `
+          };
+        },
+        onNo: () => ({ reveal: `<strong>Good safety call:</strong> No prosthesis + balance deficits makes unsupported gait unsafe and non-informative.` })
       }
-    ]
+    ],
+    next: () => {
+      // Branching logic example:
+      // If unsafe event occurred, force a safety remediation node.
+      if (state.flags.unsafeClinicEvent) return "safety_recovery";
+
+      // If chart review was missed, route to a complication-prone path
+      if (state.flags.missedChartReview) return "eval_without_chart";
+
+      // Otherwise continue to standard problem identification
+      return "problem_id";
+    }
   },
-  {
-    stepTitle: "Problem Identification – Statements",
-    items: [
+
+  safety_recovery: {
+    title: "Safety Recovery – What do you do after the near-fall?",
+    actions: [
       {
-        text: "Classify him as a limited community ambulator based on functional history and exam.",
+        text: "Reassess vitals, review safety, and continue mobility observation with the rolling walker only.",
         recommended: true,
-        score: +2,
-        bucket: "Essential",
-        rationale:
-          "His current and goal activities match limited community ambulation. This classification guides realistic expectations and component decisions."
-      },
+        onYes: () => {
+          learn("safetyPlan", "Return to RW only; document near-fall; reinforce guarding and environment control");
+          state.score += 1;
+          return { reveal: `<strong>Action outcome:</strong> Patient stabilizes. You document the near-fall and proceed with safer observation.` };
+        },
+        onNo: () => {
+          state.score -= 1;
+          return { reveal: `<strong>Consequence:</strong> Skipping safety remediation increases risk and weakens clinical reasoning documentation.` };
+        }
+      }
+    ],
+    next: () => "problem_id"
+  },
+
+  eval_without_chart: {
+    title: "You skipped chart review – New information shows up later",
+    actions: [
       {
-        text: "Note that distal tibial tenderness must influence socket relief and loading strategy.",
-        recommended: true,
-        score: +2,
-        bucket: "Essential",
-        rationale:
-          "Distal tibia is pressure-sensitive; socket design should increase load on pressure-tolerant regions such as the patellar tendon and medial tibial flare."
-      },
-      {
-        text: "Recognize that his contralateral neuropathic foot is at elevated risk for ulceration.",
-        recommended: true,
-        score: +1,
-        bucket: "Appropriate",
-        rationale:
-          "Dysvascular transtibial patients often fail on the contralateral limb. Foot preservation and shoe/insert strategy matter clinically."
-      },
-      {
-        text: "Assume that his goals of mailbox, church, and grocery store walking are unrealistic and should be downgraded.",
+        text: "Proceed with casting and socket plan without obtaining vascular/surgical details.",
         recommended: false,
-        score: -1,
-        bucket: "Inappropriate",
-        rationale:
-          "These goals are reasonable for a limited community ambulator with appropriate rehab. Downgrading them prematurely is not clinically justified."
+        onYes: () => {
+          flag("higherBreakdownRisk");
+          return {
+            reveal: `
+              <strong>Consequence:</strong> Two weeks later, patient presents with distal anterior redness and delayed skin recovery.
+              You now must backtrack and obtain the information you skipped.
+            `
+          };
+        },
+        onNo: () => {
+          // They correct course
+          learn("chartRecovered", "You obtain operative note and vascular studies before finalizing the plan");
+          return { reveal: `<strong>Course correction:</strong> You pause and obtain the missing chart details before proceeding.` };
+        }
       }
-    ]
+    ],
+    next: () => "problem_id"
   },
-  {
-    stepTitle: "Treatment Planning – Component Strategy",
-    items: [
+
+  problem_id: {
+    title: "Problem Identification – What stands out?",
+    actions: [
       {
-        text: "Select a PTB or TSB-style socket with a gel liner, based on limb shape and tissue tolerance.",
+        text: "Identify fall risk triggers and prioritize stability + training progression.",
         recommended: true,
-        score: +2,
-        bucket: "Essential",
-        rationale:
-          "Both PTB and TSB approaches are acceptable. Gel liners help reduce shear and improve load distribution in many dysvascular cases."
+        onYes: () => {
+          state.score += 2;
+          return { reveal: `<strong>Clinical impact:</strong> Your plan will emphasize stability, predictable rollover, and structured gait/balance training.` };
+        },
+        onNo: () => {
+          state.score -= 1;
+          return { reveal: `<strong>Missed opportunity:</strong> Ignoring fall triggers leads to weaker component selection and rehab planning.` };
+        }
       },
       {
-        text: "Select a SACH or single-axis foot to prioritize stability and predictable rollover.",
+        text: "Address mild knee flexion contracture in alignment and rehab plan (if present).",
         recommended: true,
-        score: +1,
-        bucket: "Appropriate",
-        rationale:
-          "Simpler, stable feet are often appropriate for lower activity levels and reduced push-off demands in older dysvascular amputees."
-      },
-      {
-        text: "Select a high-energy-return K3-style foot primarily to 'motivate' him to higher function.",
-        recommended: false,
-        score: -1,
-        bucket: "Inappropriate",
-        rationale:
-          "Dynamic feet require more control and may sacrifice stability. They should be prescribed based on functional need, not as a motivational tool."
-      },
-      {
-        text: "Integrate a formal gait and balance training plan with PT as part of your treatment plan.",
-        recommended: true,
-        score: +2,
-        bucket: "Essential",
-        rationale:
-          "Interdisciplinary rehab is critical. Prosthetic provision without coordinated gait and balance training underutilizes his functional potential."
+        onYes: () => {
+          if (state.facts.surgicalDetails) {
+            learn("contracturePlan", "Alignment + stretching plan; avoid excessive posterior brim pressure; PT coordination");
+            state.score += 1;
+            return { reveal: `<strong>Because you reviewed the op note:</strong> You integrate a contracture-aware plan and coordinate with PT.` };
+          }
+          // If they didn’t learn it, they can’t properly justify it
+          state.score += 0;
+          return { reveal: `<strong>Note:</strong> You did not document objective contracture data earlier; your plan is less defensible.` };
+        },
+        onNo: () => ({ reveal: `<strong>Risk:</strong> Unaddressed contracture can compromise alignment, knee stability, and gait efficiency.` })
       }
-    ]
-  }
-];
-
-// Final plan choice (what are you going to do?)
-const finalPlanOptions = [
-  {
-    id: "plan_a",
-    text: "Fabricate a transtibial prosthesis with an appropriate PTB or TSB socket, liner-based suspension, and stable foot; coordinate structured PT for gait and balance training; schedule early follow-up for skin and fit checks.",
-    isBest: true,
-    rationale:
-      "This plan addresses limb condition, stability, balance, and realistic functional goals with a safe, progressive rehab strategy."
+    ],
+    next: () => "final_plan"
   },
-  {
-    id: "plan_b",
-    text: "Delay prosthetic fitting due to fall risk and continue pre-prosthetic therapy only, with no clear timeline for re-evaluation.",
-    isBest: false,
-    rationale:
-      "This overemphasizes fall risk and undercuts realistic prosthetic rehab. It may lead to unnecessary deconditioning and lost function."
+
+  final_plan: {
+    title: "Final Plan – Choose the best overall approach",
+    type: "single_choice",
+    options: () => {
+      // Options can change based on learned facts
+      const hasFallProfile = !!state.facts.fallProfile;
+      const hasVascular = !!state.facts.vascularStatus;
+
+      return [
+        {
+          id: "plan_best",
+          text: `Proceed with TT prosthesis using a stability-prioritized foot, liner-based system as appropriate, and a structured PT gait/balance program with early skin checks${hasVascular ? " accounting for PAD healing risk" : ""}${hasFallProfile ? " and documented near-fall triggers" : ""}.`,
+          isBest: true,
+          rationale: "Matches safety needs, dysvascular tissue tolerance, predictable rollover, and rehab progression."
+        },
+        {
+          id: "plan_delay",
+          text: "Delay prosthetic fitting due to fall risk; continue pre-prosthetic PT only with no defined prosthetic timeline.",
+          isBest: false,
+          rationale: "Overcorrects for risk, promotes deconditioning, and fails to meet functional goals."
+        },
+        {
+          id: "plan_k3",
+          text: "Provide a high-energy-return K3 foot immediately to encourage higher activity and reduce PT needs.",
+          isBest: false,
+          rationale: "Increases control demands and can reduce stability; not justified by current function or fall profile."
+        }
+      ];
+    },
+    next: () => "summary"
   },
-  {
-    id: "plan_c",
-    text: "Provide a high-energy-return K3 foot immediately to encourage higher activity and reduce the need for extensive PT.",
-    isBest: false,
-    rationale:
-      "This plan prioritizes component complexity over stability and structured rehab. It does not match his current functional status or risk profile."
+
+  summary: {
+    title: "Scenario Complete",
+    type: "summary"
   }
-];
+};
 
-let currentStep = 0;
-let totalScore = 0;
-let mode = "cases"; // "cases" -> "plan" -> "done"
+// ------------------------------
+// RENDERING
+// ------------------------------
 
-let unsafeChoices = [];
-let missedEssentials = [];
+let currentNodeId = "start_eval";
 
-// Render the current step (evaluation/problem/plan sections)
-function renderStep() {
-  const step = scenario[currentStep];
+function render() {
   const stepContainer = document.getElementById("step-container");
-  if (!stepContainer) return;
+  const summaryPanel = document.getElementById("summary-panel");
+  const nextBtn = document.getElementById("next-btn");
 
+  if (!stepContainer || !summaryPanel || !nextBtn) return;
+
+  summaryPanel.style.display = "none";
   stepContainer.style.display = "block";
-  const stemHtml = `<div class="case-stem">${caseStem}</div>`;
+  nextBtn.style.display = "inline-block";
+  nextBtn.textContent = "Next";
 
-  stepContainer.innerHTML = `
-    ${stemHtml}
-    <h2 class="step-title">${step.stepTitle}</h2>
-    ${step.items
-      .map(
-        (item, index) => `
-      <div class="action-block">
-        <p class="action-text">${item.text}</p>
-        <div class="action-buttons">
-          <button class="yes-btn" onclick="handleSelection(${index}, true)">Yes</button>
-          <button class="no-btn" onclick="handleSelection(${index}, false)">No</button>
-        </div>
-        <div class="feedback" id="feedback-${index}" style="display:none;"></div>
-      </div>
-    `
-      )
-      .join("")}
-  `;
-}
+  const node = nodes[currentNodeId];
 
-// Handle Yes/No selection on action items
-function handleSelection(index, userChoice) {
-  const step = scenario[currentStep];
-  const item = step.items[index];
-  const fb = document.getElementById(`feedback-${index}`);
-  if (!fb) return;
-
-  const correct = userChoice === item.recommended;
-  const bucketClass = `bucket-${item.bucket.replace(/\s+/g, "").toLowerCase()}`;
-
-  // Scoring / tracking
-  if (correct) {
-    // Only add score if they followed the recommended action
-    totalScore += item.score;
-  } else {
-    // Track consequences
-    if (item.bucket === "Essential" && userChoice === false) {
-      missedEssentials.push(item.text);
-    }
-    if ((item.bucket === "Inappropriate" || item.bucket === "Contraindicated") && userChoice === true) {
-      unsafeChoices.push(item.text);
-    }
+  // Summary node
+  if (node.type === "summary") {
+    stepContainer.style.display = "none";
+    nextBtn.style.display = "none";
+    summaryPanel.innerHTML = `
+      <h2>${node.title}</h2>
+      <p><strong>Score (pilot):</strong> ${state.score}</p>
+      <p><strong>Learned facts:</strong></p>
+      <ul>${Object.entries(state.facts).map(([k,v]) => `<li>${k}: ${String(v)}</li>`).join("")}</ul>
+      <p><strong>Flags:</strong></p>
+      <ul>${Object.entries(state.flags).map(([k,v]) => `<li>${k}: ${String(v)}</li>`).join("")}</ul>
+    `;
+    summaryPanel.style.display = "block";
+    return;
   }
 
-  // Build verdict text
-  let verdict;
-  if (correct && item.recommended) {
-    verdict = "Correct: this is an action you should perform in this scenario.";
-  } else if (correct && !item.recommended) {
-    verdict = "Correct: avoiding this action is appropriate in this scenario.";
-  } else if (!correct && item.bucket === "Essential" && item.recommended) {
-    verdict = "Not optimal: this is considered an essential action; skipping it would weaken your evaluation or care plan.";
-  } else if (!correct && item.bucket === "Appropriate" && item.recommended) {
-    verdict = "Not ideal: this action is helpful and typically expected, but missing it is less critical than an essential step.";
-  } else if (!correct && (item.bucket === "Inappropriate" || item.bucket === "Contraindicated") && !item.recommended) {
-    verdict = "Unsafe choice: this action is considered inappropriate or contraindicated in this situation.";
-  } else {
-    verdict = "This choice is not aligned with the recommended approach for this scenario.";
-  }
+  // Build node HTML
+  let html = `${caseStemHtml}<h2 class="step-title">${node.title}</h2>`;
 
-  fb.innerHTML = `
-    <strong>${verdict}</strong><br>
-    <span class="${bucketClass}">${item.bucket}</span>
-    &nbsp;&mdash;&nbsp;${item.rationale}
-  `;
-  fb.style.display = "block";
-}
-
-// Render the final plan selection step
-function renderFinalPlan() {
-  mode = "plan";
-  const stepContainer = document.getElementById("step-container");
-  if (!stepContainer) return;
-
-  const stemHtml = `<div class="case-stem">${caseStem}</div>`;
-
-  stepContainer.innerHTML = `
-    ${stemHtml}
-    <h2 class="step-title">Final Plan – What Will You Do?</h2>
-    <p>Select the single best overall plan for this patient, based on your evaluation and problem list.</p>
-    <form id="plan-form">
-      ${finalPlanOptions
-        .map(
-          (opt) => `
+  if (node.type === "single_choice") {
+    const options = node.options();
+    html += `<p>Select the single best plan:</p><form id="plan-form">`;
+    for (const opt of options) {
+      html += `
         <div class="plan-option">
           <label>
-            <input type="radio" name="plan-choice" value="${opt.id}">
+            <input type="radio" name="plan" value="${opt.id}">
             ${opt.text}
           </label>
-        </div>
-      `
-        )
-        .join("")}
-    </form>
-    <div id="plan-feedback" class="feedback" style="display:none;"></div>
-  `;
+        </div>`;
+    }
+    html += `</form><div class="feedback" id="node-feedback" style="display:none;"></div>`;
+    stepContainer.innerHTML = html;
 
-  const nextBtn = document.getElementById("next-btn");
-  if (nextBtn) {
-    nextBtn.textContent = "Submit Plan";
-  }
-}
+    // Next button submits
+    nextBtn.onclick = () => {
+      const form = document.getElementById("plan-form");
+      const fb = document.getElementById("node-feedback");
+      const choice = new FormData(form).get("plan");
+      const selected = options.find(o => o.id === choice);
 
-// Evaluate final plan and show overall summary
-function submitPlanAndSummarize() {
-  const form = document.getElementById("plan-form");
-  const summaryPanel = document.getElementById("summary-panel");
-  const stepContainer = document.getElementById("step-container");
-  const nextBtn = document.getElementById("next-btn");
-
-  if (!form || !summaryPanel) return;
-
-  const data = new FormData(form);
-  const choice = data.get("plan-choice");
-  const planFeedbackDiv = document.getElementById("plan-feedback");
-
-  let planResultText = "No plan selected.";
-  let planRationaleText = "";
-
-  if (choice) {
-    const selected = finalPlanOptions.find((opt) => opt.id === choice);
-    if (selected) {
-      if (selected.isBest) {
-        planResultText = "Correct: this is the best overall plan for this patient.";
-      } else {
-        planResultText = "Not the best choice: this plan misses key aspects of safe, effective prosthetic rehab for this patient.";
+      if (!selected) {
+        fb.style.display = "block";
+        fb.innerHTML = `<strong>Please select a plan.</strong>`;
+        return;
       }
-      planRationaleText = selected.rationale;
-    }
+
+      fb.style.display = "block";
+      fb.innerHTML = selected.isBest
+        ? `<strong>Correct.</strong> ${selected.rationale}`
+        : `<strong>Not the best choice.</strong> ${selected.rationale}`;
+
+      currentNodeId = node.next();
+      // brief pause not required; user clicks Next again
+      nextBtn.textContent = "Finish";
+      nextBtn.onclick = () => render();
+    };
+
+    return;
   }
 
-  if (planFeedbackDiv) {
-    planFeedbackDiv.innerHTML = `
-      <strong>${planResultText}</strong><br>
-      ${planRationaleText}
-    `;
-    planFeedbackDiv.style.display = "block";
-  }
+  // Standard action node
+  html += node.actions.map((a, idx) => `
+    <div class="action-block">
+      <p class="action-text">${a.text}</p>
+      <div class="action-buttons">
+        <button class="yes-btn" data-idx="${idx}" data-ans="yes">Yes</button>
+        <button class="no-btn" data-idx="${idx}" data-ans="no">No</button>
+      </div>
+      <div class="feedback" id="fb-${idx}" style="display:none;"></div>
+    </div>
+  `).join("");
 
-  // Build summary
-  let unsafeSummary = "";
-  if (unsafeChoices.length > 0) {
-    unsafeSummary = `
-      <p><strong>Unsafe / contraindicated actions you selected:</strong></p>
-      <ul>${unsafeChoices.map((t) => `<li>${t}</li>`).join("")}</ul>
-    `;
-  }
+  stepContainer.innerHTML = html;
 
-  let missedSummary = "";
-  if (missedEssentials.length > 0) {
-    missedSummary = `
-      <p><strong>Essential actions you skipped:</strong></p>
-      <ul>${missedEssentials.map((t) => `<li>${t}</li>`).join("")}</ul>
-    `;
-  }
+  // Attach handlers
+  stepContainer.querySelectorAll("button[data-idx]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const idx = Number(e.currentTarget.getAttribute("data-idx"));
+      const ans = e.currentTarget.getAttribute("data-ans");
+      const action = node.actions[idx];
+      const fb = document.getElementById(`fb-${idx}`);
 
-  stepContainer.style.display = "none";
-  nextBtn.style.display = "none";
+      const choseYes = ans === "yes";
+      const correct = choseYes === action.recommended;
 
-  summaryPanel.innerHTML = `
-    <h2>Scenario Complete</h2>
-    <p>Your total pilot score (following recommended actions): <strong>${totalScore}</strong></p>
-    ${unsafeSummary}
-    ${missedSummary}
-    <p>This feedback is for study only and is not scaled to the actual ABC scoring model.</p>
-  `;
-  summaryPanel.style.display = "block";
+      // Run side effects
+      const result = choseYes ? action.onYes?.() : action.onNo?.();
+      const reveal = result?.reveal ? `<br><br>${result.reveal}` : "";
 
-  mode = "done";
+      fb.style.display = "block";
+      fb.innerHTML = correct
+        ? `<strong>Correct.</strong>${reveal}`
+        : `<strong>Not ideal.</strong>${reveal}`;
+    });
+  });
+
+  // Next button moves to computed next node
+  nextBtn.onclick = () => {
+    currentNodeId = node.next();
+    render();
+  };
 }
 
-// Move through case sections, then the final plan
-function nextStep() {
-  if (mode === "cases") {
-    currentStep++;
-    if (currentStep < scenario.length) {
-      renderStep();
-    } else {
-      renderFinalPlan();
-    }
-  } else if (mode === "plan") {
-    submitPlanAndSummarize();
-  } else {
-    // done; ignore further clicks
-  }
-}
+// ------------------------------
+// START/INIT
+// ------------------------------
 
-// Start the case from the intro screen
 function startCase() {
   const intro = document.getElementById("intro");
   const caseSection = document.getElementById("case");
-  const summaryPanel = document.getElementById("summary-panel");
-  const nextBtn = document.getElementById("next-btn");
 
   if (intro) intro.style.display = "none";
   if (caseSection) caseSection.style.display = "block";
-  if (summaryPanel) {
-    summaryPanel.innerHTML = "";
-    summaryPanel.style.display = "none";
-  }
-  if (nextBtn) {
-    nextBtn.style.display = "inline-block";
-    nextBtn.textContent = "Next Section";
-  }
 
-  // Reset state
-  currentStep = 0;
-  totalScore = 0;
-  mode = "cases";
-  unsafeChoices = [];
-  missedEssentials = [];
+  // reset state
+  state.facts = {};
+  state.flags = {};
+  state.score = 0;
+  state.log = [];
+  currentNodeId = "start_eval";
 
-  renderStep();
+  render();
 }
 
-// Hide case section on initial load
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
   const caseSection = document.getElementById("case");
-  const summaryPanel = document.getElementById("summary-panel");
   if (caseSection) caseSection.style.display = "none";
-  if (summaryPanel) summaryPanel.style.display = "none";
 });
 
-// Expose functions globally for inline onclick handlers
+// expose
 window.startCase = startCase;
-window.nextStep = nextStep;
-window.handleSelection = handleSelection;
